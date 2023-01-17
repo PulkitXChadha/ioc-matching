@@ -15,7 +15,9 @@
 
 CREATE STREAMING LIVE TABLE inc_iochits
 AS
-SELECT now() AS detection_ts, ioc.ioc_value AS matched_ioc, ioc.ioc_type, aug.ts AS first_seen, aug.ts AS last_seen, ARRAY('dns') AS src_tables, ARRAY(aug.raw) AS raw 
+
+SELECT  now() AS detection_ts, ioc.ioc_value AS matched_ioc, ioc.ioc_type, aug.ts AS first_seen, aug.ts AS last_seen, 
+  ARRAY('stream(ioc_matching_pulkit_chadha.dns)') AS src_tables, ARRAY(aug.raw) AS raw
 FROM
   (
   SELECT timestamp(exp.ts) AS ts, exp.raw, extracted_obs
@@ -23,19 +25,22 @@ FROM
     (
     SELECT d.ts, to_json(struct(d.*)) AS raw,
       concat(
-        regexp_extract_all(d.query, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.id_orig_h, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.id_resp_h, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.query, '([\\w_-]+\.[\\w_-]+\.[\\w_-]+)$')
+        regexp_extract_all(d.id_orig_p, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.query, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.id_orig_h, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.id_resp_h, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.id_resp_p, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.query, '((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}', 0)
         ) AS extracted_obslist
-    FROM stream(ioc_matching_lipyeow_lim.dns) AS d
+    FROM stream(ioc_matching_pulkit_chadha.dns) AS d
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs
   ) AS aug 
-  INNER JOIN ioc_matching_lipyeow_lim.ioc AS ioc ON aug.extracted_obs=ioc.ioc_value AND ioc.active=TRUE
-
+  INNER JOIN ioc_matching_pulkit_chadha.ioc AS ioc ON aug.extracted_obs=ioc.ioc_value AND ioc.active=TRUE
+  
 UNION ALL
 
-SELECT now() AS detection_ts, ioc.ioc_value AS matched_ioc, ioc.ioc_type, aug.ts AS first_seen, aug.ts AS last_seen, ARRAY('http') AS src_tables, ARRAY(aug.raw) AS raw
+SELECT  now() AS detection_ts, ioc.ioc_value AS matched_ioc, ioc.ioc_type, aug.ts AS first_seen, aug.ts AS last_seen, 
+  ARRAY('stream(ioc_matching_pulkit_chadha.http)') AS src_tables, ARRAY(aug.raw) AS raw
 FROM
   (
   SELECT timestamp(exp.ts) AS ts, exp.raw, extracted_obs
@@ -43,24 +48,27 @@ FROM
     (
     SELECT d.ts, to_json(struct(d.*)) AS raw,
       concat(
-        regexp_extract_all(d.orig_filenames, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.orig_fuids, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.origin, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.resp_fuids, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.referrer, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.resp_filenames, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.resp_mime_types, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.id_orig_h, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.host, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.id_resp_h, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.orig_mime_types, '(\\d+\.\\d+\.\\d+\.\\d+)'),
-        regexp_extract_all(d.referrer, '([\\w_-]+\.[\\w_-]+\.[\\w_-]+)$')
+        regexp_extract_all(d.origin, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.resp_fuids, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.resp_filenames, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.resp_mime_types, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.id_orig_h, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.id_resp_h, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.id_resp_p, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.orig_filenames, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.orig_fuids, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.response_body_len, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.id_orig_p, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.referrer, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.host, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.orig_mime_types, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.referrer, '((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}', 0)
         ) AS extracted_obslist
-    FROM stream(ioc_matching_lipyeow_lim.http) AS d
+    FROM stream(ioc_matching_pulkit_chadha.http) AS d
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs
   ) AS aug 
-  INNER JOIN ioc_matching_lipyeow_lim.ioc AS ioc ON aug.extracted_obs=ioc.ioc_value AND ioc.active=TRUE
-;
+  INNER JOIN ioc_matching_pulkit_chadha.ioc AS ioc ON aug.extracted_obs=ioc.ioc_value AND ioc.active=TRUE
+  ;
 
 -- COMMAND ----------
 

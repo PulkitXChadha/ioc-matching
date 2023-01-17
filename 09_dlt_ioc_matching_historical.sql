@@ -33,10 +33,10 @@ AS
     max(s.last_seen) AS last_seen,
     collect_set(s.src_table) AS src_tables,
     collect_set(logs.raw) AS raw
-  FROM STREAM(ioc_matching_lipyeow_lim.ioc) AS ioc 
-    INNER JOIN ioc_matching_lipyeow_lim.ioc_summary_all AS s
+  FROM STREAM(ioc_matching_pulkit_chadha.ioc) AS ioc 
+    INNER JOIN ioc_matching_pulkit_chadha.ioc_summary_all AS s
     ON s.obs_value = ioc.ioc_value AND ioc.active = TRUE
-    LEFT OUTER JOIN ioc_matching_lipyeow_lim.v_logs_silver AS logs 
+    LEFT OUTER JOIN ioc_matching_pulkit_chadha.v_logs_silver AS logs 
     ON s.src_table = logs.src_table
       AND s.src_ip = logs.src_ip 
       AND s.dst_ip = logs.dst_ip 
@@ -59,7 +59,7 @@ SELECT now() AS detection_ts,
   collect_set(aug.src_table) AS src_tables, 
   collect_set(aug.raw) AS raw
 FROM
-  STREAM(ioc_matching_lipyeow_lim.ioc) AS ioc 
+  STREAM(ioc_matching_pulkit_chadha.ioc) AS ioc 
   INNER JOIN 
   (
   SELECT 'dns' AS src_table, exp.ts, exp.raw, extracted_obs
@@ -72,7 +72,7 @@ FROM
         regexp_extract_all(d.id_resp_h, '(\\d+\.\\d+\.\\d+\.\\d+)'),
         regexp_extract_all(d.query, '([\\w_-]+\.[\\w_-]+\.[\\w_-]+)$')
         ) AS extracted_obslist
-    FROM ioc_matching_lipyeow_lim.dns AS d
+    FROM ioc_matching_pulkit_chadha.dns AS d
     WHERE timestamp(d.ts) > '2012-03-01T00:00:00+0000'
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs 
   UNION ALL
@@ -94,7 +94,7 @@ FROM
         regexp_extract_all(d.orig_mime_types, '(\\d+\.\\d+\.\\d+\.\\d+)'),
         regexp_extract_all(d.referrer, '([\\w_-]+\.[\\w_-]+\.[\\w_-]+)$')
         ) AS extracted_obslist
-    FROM ioc_matching_lipyeow_lim.http AS d
+    FROM ioc_matching_pulkit_chadha.http AS d
     WHERE timestamp(d.ts) > '2012-03-01T00:00:00+0000'
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs
   ) AS aug 

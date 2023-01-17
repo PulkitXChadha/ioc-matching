@@ -19,27 +19,31 @@ AS
 SELECT aug.ts_day, aug.obs_value, aug.src_data, aug.src_ip, aug.dst_ip, count(*) AS cnt, min(aug.ts) AS first_seen, max(aug.ts) AS last_seen
 FROM
   (
-  SELECT 'dns' AS src_data, extracted_obs AS obs_value, exp.ts::timestamp, date_trunc('DAY', timestamp(exp.ts)) as ts_day, exp.id_orig_h as src_ip, exp.id_resp_h as dst_ip
+  SELECT 'ioc_matching_pulkit_chadha.dns' AS src_data, extracted_obs AS obs_value, exp.ts::timestamp, date_trunc('DAY', timestamp(exp.ts)) as ts_day, exp.id_orig_h as src_ip, exp.id_resp_h as dst_ip
   FROM
     (
     SELECT d.*,
       concat(
-        regexp_extract_all(d.query, '(\\d+\\.\\d+\\.\\d+\\.\\d+)', 0),
+        regexp_extract_all(d.query, '(\\d+\\.\\d+\.\\d+\.\\d+)', 0),
         ARRAY(d.id_orig_h),
         ARRAY(d.id_resp_h),
         regexp_extract_all(d.query, '((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}', 0)
         ) AS extracted_obslist
-    FROM stream(ioc_matching_lipyeow_lim.dns) AS d
+
+    FROM stream(ioc_matching_pulkit_chadha.dns) AS d
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs
   ) AS aug
 GROUP BY ts_day, obs_value, src_data, src_ip, dst_ip;
+
+
+-- COMMAND ----------
 
 CREATE STREAMING LIVE TABLE ioc_summary_http
 AS
 SELECT aug.ts_day, aug.obs_value, aug.src_data, aug.src_ip, aug.dst_ip, count(*) AS cnt, min(aug.ts) AS first_seen, max(aug.ts) AS last_seen
 FROM
   (
-  SELECT 'http' AS src_data, extracted_obs AS obs_value, exp.ts::timestamp, date_trunc('DAY', timestamp(exp.ts)) as ts_day, exp.id_orig_h as src_ip, exp.id_resp_h as dst_ip
+  SELECT 'ioc_matching_pulkit_chadha.http' AS src_data, extracted_obs AS obs_value, exp.ts::timestamp, date_trunc('DAY', timestamp(exp.ts)) as ts_day, exp.id_orig_h as src_ip, exp.id_resp_h as dst_ip
   FROM
     (
     SELECT d.*,
@@ -50,12 +54,8 @@ FROM
         ARRAY(d.id_resp_h),
         regexp_extract_all(d.referrer, '((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+[A-Za-z]{2,6}', 0)
         ) AS extracted_obslist
-    FROM stream(ioc_matching_lipyeow_lim.http) AS d
+
+    FROM stream(ioc_matching_pulkit_chadha.http) AS d
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs
   ) AS aug
 GROUP BY ts_day, obs_value, src_data, src_ip, dst_ip;
-
-
--- COMMAND ----------
-
-

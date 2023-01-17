@@ -69,31 +69,31 @@
 
 -- DBTITLE 1,Display statistics of summary table sizes
 SELECT 
-(SELECT count(*) FROM ioc_matching_lipyeow_lim.dns) AS dns_cnt,
-(SELECT count(*) FROM ioc_matching_lipyeow_lim.ioc_summary_dns) AS dns_summary_cnt,
-(SELECT count(*) FROM ioc_matching_lipyeow_lim.http) AS http_cnt,
-(SELECT count(*) FROM ioc_matching_lipyeow_lim.ioc_summary_http) AS http_summary_cnt
+(SELECT count(*) FROM ioc_matching_pulkit_chadha.dns) AS dns_cnt,
+(SELECT count(*) FROM ioc_matching_pulkit_chadha.ioc_summary_dns) AS dns_summary_cnt,
+(SELECT count(*) FROM ioc_matching_pulkit_chadha.http) AS http_cnt,
+(SELECT count(*) FROM ioc_matching_pulkit_chadha.ioc_summary_http) AS http_summary_cnt
 ;
 
 -- COMMAND ----------
 
 -- DBTITLE 1,Create the UNION-ALL view for all the summary tables (admin)
-DROP VIEW IF EXISTS ioc_matching_lipyeow_lim.ioc_summary_all
+DROP VIEW IF EXISTS ioc_matching_pulkit_chadha.ioc_summary_all
 ;
-CREATE VIEW IF NOT EXISTS ioc_matching_lipyeow_lim.ioc_summary_all
+CREATE VIEW IF NOT EXISTS ioc_matching_pulkit_chadha.ioc_summary_all
 AS 
 SELECT 'dns' AS src_table, d.*
-FROM ioc_matching_lipyeow_lim.ioc_summary_dns AS d
+FROM ioc_matching_pulkit_chadha.ioc_summary_dns AS d
 UNION ALL
 SELECT 'http' AS src_table, h.*
-FROM ioc_matching_lipyeow_lim.ioc_summary_http AS h
+FROM ioc_matching_pulkit_chadha.ioc_summary_http AS h
 ;
 
 -- COMMAND ----------
 
 -- DBTITLE 1,Apply ad hoc time range filter on summary tables
 SELECT obs_value, src_ip, dst_ip, sum(cnt) AS cnt, min(first_seen) AS first_seen, max(last_seen) AS last_seen, collect_set(src_table) AS src_tables
-FROM ioc_matching_lipyeow_lim.ioc_summary_all
+FROM ioc_matching_pulkit_chadha.ioc_summary_all
 WHERE ts_day BETWEEN '2012-03-01T00:00:00+0000' AND '2012-04-01T00:00:00+0000'
 GROUP BY obs_value, src_ip, dst_ip
 ORDER BY cnt DESC
@@ -102,14 +102,14 @@ ORDER BY cnt DESC
 -- COMMAND ----------
 
 -- DBTITLE 1,Simulate a new IOC being added
-INSERT INTO ioc_matching_lipyeow_lim.ioc VALUES ('ipv4', '44.206.168.192', '2022-08-29T00:00:00+0000', TRUE);
+INSERT INTO ioc_matching_pulkit_chadha.ioc VALUES ('ipv4', '44.206.168.192', '2022-08-29T00:00:00+0000', TRUE);
 
 -- COMMAND ----------
 
 -- DBTITLE 1,Match newly added IOC against summary tables with time range filter
 SELECT s.obs_value, ioc.ioc_type, s.src_ip, s.dst_ip, sum(s.cnt) AS cnt, min(s.first_seen) AS first_seen, max(s.last_seen) AS last_seen, collect_set(s.src_table) AS src_tables
-FROM ioc_matching_lipyeow_lim.ioc_summary_all AS s
-INNER JOIN ioc_matching_lipyeow_lim.ioc AS ioc ON s.obs_value = ioc.ioc_value AND ioc.active = TRUE AND ioc.created_ts > '2022-08-28T00:00:00+0000'
+FROM ioc_matching_pulkit_chadha.ioc_summary_all AS s
+INNER JOIN ioc_matching_pulkit_chadha.ioc AS ioc ON s.obs_value = ioc.ioc_value AND ioc.active = TRUE AND ioc.created_ts > '2022-08-28T00:00:00+0000'
 WHERE s.ts_day BETWEEN '2012-03-01T00:00:00+0000' AND '2012-04-01T00:00:00+0000'
 GROUP BY s.obs_value, ioc.ioc_type, s.src_ip, s.dst_ip
 ORDER BY cnt DESC
@@ -118,16 +118,16 @@ ORDER BY cnt DESC
 -- COMMAND ----------
 
 -- DBTITLE 1,Create the union-all view for silver-level logs (admin)
-DROP VIEW IF EXISTS ioc_matching_lipyeow_lim.v_logs_silver
+DROP VIEW IF EXISTS ioc_matching_pulkit_chadha.v_logs_silver
 ;
 
-CREATE VIEW IF NOT EXISTS ioc_matching_lipyeow_lim.v_logs_silver
+CREATE VIEW IF NOT EXISTS ioc_matching_pulkit_chadha.v_logs_silver
 AS
 SELECT 'dns' AS src_table, TIMESTAMP(d.ts) AS ts, d.id_orig_h AS src_ip, d.id_resp_h AS dst_ip, to_json(STRUCT(d.*)) AS raw
-FROM ioc_matching_lipyeow_lim.dns AS d
+FROM ioc_matching_pulkit_chadha.dns AS d
 UNION ALL
 SELECT 'http' AS src_table, TIMESTAMP(h.ts) AS ts, h.id_orig_h AS src_ip, h.id_resp_h AS dst_ip, to_json(STRUCT(h.*)) AS raw
-FROM ioc_matching_lipyeow_lim.http AS h
+FROM ioc_matching_pulkit_chadha.http AS h
 ;
 
 -- COMMAND ----------
@@ -141,10 +141,10 @@ SELECT
     max(s.last_seen) AS last_seen,
     collect_set(s.src_table) AS src_tables,
     collect_set(logs.raw) AS raw
-FROM ioc_matching_lipyeow_lim.ioc AS ioc 
-  INNER JOIN ioc_matching_lipyeow_lim.ioc_summary_all AS s
+FROM ioc_matching_pulkit_chadha.ioc AS ioc 
+  INNER JOIN ioc_matching_pulkit_chadha.ioc_summary_all AS s
     ON s.obs_value = ioc.ioc_value AND ioc.active = TRUE AND ioc.created_ts > '2022-08-28T00:00:00+0000'
-  LEFT OUTER JOIN ioc_matching_lipyeow_lim.v_logs_silver AS logs 
+  LEFT OUTER JOIN ioc_matching_pulkit_chadha.v_logs_silver AS logs 
     ON s.src_table = logs.src_table
       AND s.src_ip = logs.src_ip 
       AND s.dst_ip = logs.dst_ip 
@@ -163,8 +163,8 @@ WITH matches AS
     min(s.first_seen) AS first_seen,
     max(s.last_seen) AS last_seen,
     collect_set(s.src_table) AS src_tables
-  FROM ioc_matching_lipyeow_lim.ioc_summary_all AS s
-    INNER JOIN ioc_matching_lipyeow_lim.ioc AS ioc 
+  FROM ioc_matching_pulkit_chadha.ioc_summary_all AS s
+    INNER JOIN ioc_matching_pulkit_chadha.ioc AS ioc 
     ON s.obs_value = ioc.ioc_value 
       AND ioc.active = TRUE 
       AND ioc.created_ts > '2022-08-28T00:00:00+0000'
@@ -178,7 +178,7 @@ SELECT matches.obs_value,
   first(matches.last_seen) AS last_seen,
   first(matches.src_tables) AS src_tables,
   collect_set(logs.raw) AS raw
-FROM matches LEFT OUTER JOIN ioc_matching_lipyeow_lim.v_logs_silver AS logs 
+FROM matches LEFT OUTER JOIN ioc_matching_pulkit_chadha.v_logs_silver AS logs 
     ON array_contains(matches.src_tables, logs.src_table)
       AND matches.src_ip = logs.src_ip 
       AND matches.dst_ip = logs.dst_ip 
@@ -199,7 +199,7 @@ SELECT now() AS detection_ts,
   collect_set(aug.src_table) AS src_tables, 
   collect_set(aug.raw) AS raw
 FROM
-  ioc_matching_lipyeow_lim.ioc AS ioc 
+  ioc_matching_pulkit_chadha.ioc AS ioc 
   INNER JOIN 
   (
   SELECT 'dns' AS src_table, exp.ts, exp.raw, extracted_obs
@@ -212,7 +212,7 @@ FROM
         regexp_extract_all(d.id_resp_h, '(\\d+\.\\d+\.\\d+\.\\d+)'),
         regexp_extract_all(d.query, '([\\w_-]+\.[\\w_-]+\.[\\w_-]+)$')
         ) AS extracted_obslist
-    FROM ioc_matching_lipyeow_lim.dns AS d
+    FROM ioc_matching_pulkit_chadha.dns AS d
     WHERE timestamp(d.ts) > '2012-03-01T00:00:00+0000'
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs 
   UNION ALL
@@ -234,7 +234,7 @@ FROM
         regexp_extract_all(d.orig_mime_types, '(\\d+\.\\d+\.\\d+\.\\d+)'),
         regexp_extract_all(d.referrer, '([\\w_-]+\.[\\w_-]+\.[\\w_-]+)$')
         ) AS extracted_obslist
-    FROM ioc_matching_lipyeow_lim.http AS d
+    FROM ioc_matching_pulkit_chadha.http AS d
     WHERE timestamp(d.ts) > '2012-03-01T00:00:00+0000'
     )  AS exp LATERAL VIEW explode(exp.extracted_obslist) AS extracted_obs
   ) AS aug 
@@ -245,8 +245,4 @@ FROM
 -- COMMAND ----------
 
 SELECT min(timestamp(ts)), max(timestamp(ts))
-FROM ioc_matching_lipyeow_lim.dns;
-
--- COMMAND ----------
-
-
+FROM ioc_matching_pulkit_chadha.dns;
